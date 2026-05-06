@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<!--
+  metadata.xml shipped inside the plugin tarball.
+
+  This is the per-tarball metadata file consumed by OpenCPN's Import Plugin
+  function.  It is generated from this template by CMake and copied to the
+  root of the tarball.
+
+  Important details:
+    - <name> must match GetCommonName() exactly, case-sensitive.
+    - <api-version> must match GetAPIVersionMajor()/Minor().
+    - <target>, <target-version>, and <target-arch> must match the OpenCPN
+      build/runtime platform, otherwise Import Plugin will reject it.
+    - <tarball-url> is required by the schema even for a local tarball.
+-->
+<plugin version="1">
+  <name>@PLUGIN_DISPLAY_NAME@</name>
+  <version>@PLUGIN_VERSION@</version>
+  <release>1</release>
+
+  <summary>Export routes and waypoints to GPX files.</summary>
+
+  <api-version>@OCPN_API_VERSION@</api-version>
+
+  <open-source>yes</open-source>
+  <author>GPX Export Plugin Contributors</author>
+  <source>https://example.com/gpx_export_pi</source>
+  <info-url>https://example.com/gpx_export_pi</info-url>
+
+  <description>
+Export OpenCPN routes and waypoints to GPX files
+using configurable compatibility presets for
+marine chartplotters and navigation software.
+  </description>
+
+  <target>@PKG_TARGET@</target>
+  <target-version>@PKG_TARGET_VERSION@</target-version>
+  <target-arch>@PKG_TARGET_ARCH@</target-arch>
+
+  <tarball-url>file:///local-install</tarball-url>
+  <tarball-checksum>  </tarball-checksum>
+</plugin>
