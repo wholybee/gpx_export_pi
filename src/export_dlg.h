@@ -126,16 +126,20 @@ private:
   void OnPresetChanged(wxCommandEvent& event);
   void OnOptions(wxCommandEvent& event);
   void OnFtp(wxCommandEvent& event);
+  void OnSelectionChanged(wxCommandEvent& event);
 
   void PopulateRoutes();
   void PopulateWaypoints();
   bool BuildSelectedDocument(ExportDocument& doc, std::string& suggested_name);
+  void UpdateNewNameField();
   wxString MakeSuggestedFilename(const std::string& suggested_name) const;
 
   wxNotebook* m_notebook;
   wxListBox* m_routeList;
   wxListBox* m_waypointList;
   wxChoice* m_presetChoice;
+  wxStaticText* m_newNameLabel;
+  wxTextCtrl* m_newNameText;
   wxStaticText* m_statusText;
 
   wxFileConfig* m_config;

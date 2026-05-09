@@ -36,6 +36,7 @@ enum {
   ID_ROUTE_LIST,
   ID_WAYPOINT_LIST,
   ID_PRESET_CHOICE,
+  ID_NEW_NAME_TEXT,
   ID_BTN_OPTIONS,
   ID_BTN_FTP,
   ID_BTN_EXPORT,
@@ -67,6 +68,8 @@ wxBEGIN_EVENT_TABLE(GpxExportDialog, wxDialog)
     EVT_BUTTON(ID_BTN_FTP, GpxExportDialog::OnFtp)
     EVT_NOTEBOOK_PAGE_CHANGED(ID_NOTEBOOK, GpxExportDialog::OnTabChanged)
     EVT_CHOICE(ID_PRESET_CHOICE, GpxExportDialog::OnPresetChanged)
+    EVT_LISTBOX(ID_ROUTE_LIST, GpxExportDialog::OnSelectionChanged)
+    EVT_LISTBOX(ID_WAYPOINT_LIST, GpxExportDialog::OnSelectionChanged)
 wxEND_EVENT_TABLE()
 
 
@@ -77,6 +80,8 @@ wxEND_EVENT_TABLE()
 namespace {
 
 const wxChar* kFtpConfigPath = wxT("/PlugIns/GPXExport/FTP");
+const int kFtpTimeoutSeconds = 60;
+const int kFtpMaxAttempts = 3;
 
 bool IsAsciiDigit(wxChar ch) { return ch >= wxT('0') && ch <= wxT('9'); }
 
@@ -110,16 +115,31 @@ public:
 
   bool Upload(const wxString& directory, const wxString& filename,
               const std::string& payload) {
+    for (int attempt = 1; attempt <= kFtpMaxAttempts; ++attempt) {
+      if (attempt > 1) {
+        Log(wxString::Format(wxT("Retrying FTP upload, attempt %d of %d."),
+                             attempt, kFtpMaxAttempts));
+      }
+      if (UploadOnce(directory, filename, payload)) return true;
+      CloseSockets();
+    }
+    Log(wxT("ERROR: FTP upload failed after all retry attempts."));
+    return false;
+  }
+
+private:
+  bool UploadOnce(const wxString& directory, const wxString& filename,
+                  const std::string& payload) {
     wxIPV4address addr;
     addr.Hostname(m_host);
     addr.Service(m_port);
 
-    m_control.SetTimeout(20);
-    m_control.SetFlags(wxSOCKET_WAITALL);
+    m_control.SetTimeout(kFtpTimeoutSeconds);
+    m_control.SetFlags(wxSOCKET_NONE);
 
     Log(wxString::Format(wxT("Connecting to %s:%d"), m_host, m_port));
     m_control.Connect(addr, false);
-    if (!m_control.WaitOnConnect(20) || !m_control.IsConnected()) {
+    if (!m_control.WaitOnConnect(kFtpTimeoutSeconds) || !m_control.IsConnected()) {
       Log(wxT("ERROR: Could not connect to FTP server."));
       return false;
     }
@@ -155,13 +175,13 @@ public:
     wxIPV4address data_addr;
     data_addr.Hostname(pasv_host);
     data_addr.Service(pasv_port);
-    data.SetTimeout(20);
-    data.SetFlags(wxSOCKET_WAITALL);
+    data.SetTimeout(kFtpTimeoutSeconds);
+    data.SetFlags(wxSOCKET_NONE);
 
     Log(wxString::Format(wxT("Opening passive data connection to %s:%d"),
                          pasv_host, pasv_port));
     data.Connect(data_addr, false);
-    if (!data.WaitOnConnect(20) || !data.IsConnected()) {
+    if (!data.WaitOnConnect(kFtpTimeoutSeconds) || !data.IsConnected()) {
       return FailQuit(wxT("Could not open passive data connection."));
     }
 
@@ -175,8 +195,7 @@ public:
     Log(wxString::Format(wxT("Sending %lu byte(s) of GPX data."),
                          static_cast<unsigned long>(payload.size())));
     if (!payload.empty()) {
-      data.Write(payload.data(), payload.size());
-      if (data.LastCount() != payload.size() || data.Error()) {
+      if (!WriteAll(data, payload.data(), payload.size())) {
         data.Close();
         return FailQuit(wxT("Data connection write failed."));
       }
@@ -193,7 +212,6 @@ public:
     return true;
   }
 
-private:
   void Log(const wxString& line) {
     if (m_log) m_log->AppendText(line + wxT("\n"));
   }
@@ -206,25 +224,39 @@ private:
     wxCharBuffer utf8 = command.ToUTF8();
     std::string line(utf8.data() ? utf8.data() : "");
     line += "\r\n";
-    m_control.Write(line.data(), line.size());
-    if (m_control.LastCount() != line.size() || m_control.Error()) {
+    if (!WriteAll(m_control, line.data(), line.size())) {
       Log(wxT("ERROR: Failed to write command to control connection."));
       return false;
     }
     return true;
   }
 
-  wxString ReadPhysicalLine() {
+  bool WriteAll(wxSocketBase& socket, const char* data, size_t length) {
+    size_t sent = 0;
+    while (sent < length) {
+      size_t chunk = length - sent;
+      if (chunk > 4096) chunk = 4096;
+      socket.Write(data + sent, chunk);
+      size_t count = socket.LastCount();
+      if (count == 0 || socket.Error()) return false;
+      sent += count;
+    }
+    return true;
+  }
+
+  bool ReadPhysicalLine(wxString& out_line) {
     std::string line;
     char c = 0;
     while (true) {
-      if (!m_control.WaitForRead(20)) break;
+      if (!m_control.WaitForRead(kFtpTimeoutSeconds)) return false;
       m_control.Read(&c, 1);
-      if (m_control.LastCount() != 1 || m_control.Error()) break;
-      if (c == '\n') break;
+      if (m_control.LastCount() != 1 || m_control.Error()) return false;
+      if (c == '\n') {
+        out_line = wxString::FromUTF8(line.c_str());
+        return true;
+      }
       if (c != '\r') line.push_back(c);
     }
-    return wxString::FromUTF8(line.c_str());
   }
 
   int ReadReply() {
@@ -232,10 +264,15 @@ private:
     wxString expected_prefix;
 
     while (true) {
-      wxString line = ReadPhysicalLine();
-      if (line.IsEmpty()) {
-        Log(wxT("ERROR: Timed out waiting for FTP reply."));
+      wxString line;
+      if (!ReadPhysicalLine(line)) {
+        Log(wxString::Format(wxT("ERROR: Timed out waiting %d second(s) for FTP reply."),
+                             kFtpTimeoutSeconds));
         return -1;
+      }
+      if (line.IsEmpty()) {
+        Log(wxT("< [blank line]"));
+        continue;
       }
       Log(wxT("< ") + line);
       m_lastReply = line;
@@ -283,6 +320,17 @@ private:
     data_host = wxString::Format(wxT("%ld.%ld.%ld.%ld"), nums[0], nums[1],
                                  nums[2], nums[3]);
     data_port = static_cast<int>(nums[4] * 256 + nums[5]);
+
+    // Some embedded FTP servers advertise 0.0.0.0, a stale address, or an
+    // address from a different interface in PASV replies.  Mature FTP clients
+    // commonly ignore that address and connect back to the control host.
+    if (nums[0] == 0 || nums[0] == 127 || data_host != m_host) {
+      Log(wxString::Format(
+          wxT("PASV reply advertised %s; using control host %s instead."),
+          data_host, m_host));
+      data_host = m_host;
+    }
+
     return true;
   }
 
@@ -294,6 +342,10 @@ private:
       m_control.Close();
     }
     return false;
+  }
+
+  void CloseSockets() {
+    if (m_control.IsConnected()) m_control.Close();
   }
 
   wxTextCtrl* m_log;
@@ -729,6 +781,20 @@ GpxExportDialog::GpxExportDialog(wxWindow* parent,
   presetSizer->Add(m_presetChoice, 1, wxEXPAND);
   leftSizer->Add(presetSizer, 0, wxEXPAND | wxBOTTOM, 8);
 
+  // --- Optional exported object name override ---
+  auto* newNameSizer = new wxBoxSizer(wxHORIZONTAL);
+  m_newNameLabel = new wxStaticText(this, wxID_ANY, wxT("New Route Name:"));
+  newNameSizer->Add(m_newNameLabel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+  m_newNameText = new wxTextCtrl(this, ID_NEW_NAME_TEXT);
+  newNameSizer->Add(m_newNameText, 1, wxEXPAND);
+  leftSizer->Add(newNameSizer, 0, wxEXPAND | wxBOTTOM, 4);
+
+  auto* newNameNote = new wxStaticText(
+      this, wxID_ANY,
+      wxT("Some chartplotters do not allow overwriting an existing route or waypoint, so give it a new name here."));
+  newNameNote->Wrap(460);
+  leftSizer->Add(newNameNote, 0, wxEXPAND | wxBOTTOM, 8);
+
   // --- Status ---
   m_statusText = new wxStaticText(this, wxID_ANY, wxEmptyString);
   leftSizer->Add(m_statusText, 0, wxEXPAND);
@@ -762,6 +828,7 @@ GpxExportDialog::GpxExportDialog(wxWindow* parent,
     m_statusText->SetLabel(
         wxString::Format(wxT("%zu waypoint(s) available"), m_waypoints.size()));
   }
+  UpdateNewNameField();
 }
 
 // ---------------------------------------------------------------------------
@@ -819,6 +886,9 @@ bool GpxExportDialog::BuildSelectedDocument(ExportDocument& doc,
   doc = ExportDocument();
   suggested_name.clear();
 
+  wxString entered_name = m_newNameText ? m_newNameText->GetValue() : wxEmptyString;
+  entered_name.Trim(true).Trim(false);
+
   if (m_notebook->GetSelection() == 0) {
     int sel = m_routeList->GetSelection();
     if (sel == wxNOT_FOUND) {
@@ -827,8 +897,10 @@ bool GpxExportDialog::BuildSelectedDocument(ExportDocument& doc,
       return false;
     }
     if (sel < 0 || sel >= (int)m_routes.size()) return false;
-    doc.routes.push_back(m_routes[sel]);
-    suggested_name = m_routes[sel].name;
+    ExportRoute route = m_routes[sel];
+    if (!entered_name.IsEmpty()) route.name = entered_name.ToStdString();
+    doc.routes.push_back(route);
+    suggested_name = route.name;
   } else {
     int sel = m_waypointList->GetSelection();
     if (sel == wxNOT_FOUND) {
@@ -837,12 +909,41 @@ bool GpxExportDialog::BuildSelectedDocument(ExportDocument& doc,
       return false;
     }
     if (sel < 0 || sel >= (int)m_waypoints.size()) return false;
-    doc.waypoints.push_back(m_waypoints[sel]);
-    suggested_name = m_waypoints[sel].name;
+    ExportWaypoint waypoint = m_waypoints[sel];
+    if (!entered_name.IsEmpty()) waypoint.name = entered_name.ToStdString();
+    doc.waypoints.push_back(waypoint);
+    suggested_name = waypoint.name;
   }
 
   if (suggested_name.empty()) suggested_name = "export";
   return true;
+}
+
+void GpxExportDialog::UpdateNewNameField() {
+  if (!m_newNameLabel || !m_newNameText || !m_notebook) return;
+
+  if (m_notebook->GetSelection() == 0) {
+    m_newNameLabel->SetLabel(wxT("New Route Name:"));
+    int sel = m_routeList ? m_routeList->GetSelection() : wxNOT_FOUND;
+    if (sel != wxNOT_FOUND && sel >= 0 && sel < (int)m_routes.size()) {
+      m_newNameText->SetValue(wxString(m_routes[sel].name));
+      m_newNameText->Enable(true);
+    } else {
+      m_newNameText->Clear();
+      m_newNameText->Enable(false);
+    }
+  } else {
+    m_newNameLabel->SetLabel(wxT("New Waypoint Name:"));
+    int sel = m_waypointList ? m_waypointList->GetSelection() : wxNOT_FOUND;
+    if (sel != wxNOT_FOUND && sel >= 0 && sel < (int)m_waypoints.size()) {
+      m_newNameText->SetValue(wxString(m_waypoints[sel].name));
+      m_newNameText->Enable(true);
+    } else {
+      m_newNameText->Clear();
+      m_newNameText->Enable(false);
+    }
+  }
+  Layout();
 }
 
 wxString GpxExportDialog::MakeSuggestedFilename(
@@ -872,6 +973,11 @@ void GpxExportDialog::OnTabChanged(wxBookCtrlEvent& event) {
     m_statusText->SetLabel(
         wxString::Format(wxT("%zu waypoint(s) available"), m_waypoints.size()));
   }
+  UpdateNewNameField();
+}
+
+void GpxExportDialog::OnSelectionChanged(wxCommandEvent& event) {
+  UpdateNewNameField();
 }
 
 void GpxExportDialog::OnPresetChanged(wxCommandEvent& event) {

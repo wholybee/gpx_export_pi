@@ -15,7 +15,7 @@
 # =============================================================================
 
 cmake_minimum_required(VERSION 3.10)
-project(gpx_export_pi VERSION 0.3.6)
+project(gpx_export_pi VERSION 0.3.7)
 
 # File-side name. Used for the DLL/shared-library filename and tarball layout.
 set(PLUGIN_NAME gpx_export_pi)
