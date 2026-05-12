@@ -24,14 +24,15 @@ if not defined VCINSTALLDIR (
 
 if exist build (rmdir /s /q build)
 :: mkdir build && cd build
+cd
 echo cmake -A Win32 -G "Visual Studio 17 2022" 
 cmake -A Win32 -G "Visual Studio 17 2022" ^
     -DCMAKE_GENERATOR_PLATFORM=Win32 ^
     -DCMAKE_BUILD_TYPE=%CONFIGURATION% ^
     -DwxWidgets_LIB_DIR=!wxWidgets_LIB_DIR! ^
     -DwxWidgets_ROOT_DIR=!wxWidgets_ROOT_DIR! ^
-    -DOCPN_TARGET_TUPLE=msvc-wx32;10;x86_64 ^
-    ..
+    -DOCPN_TARGET_TUPLE="msvc-wx32;10;x86_64" ^
+    -S ..
 echo cmake --build . --target tarball --config %CONFIGURATION%
 
 cmake --build . --target tarball --config %CONFIGURATION%
