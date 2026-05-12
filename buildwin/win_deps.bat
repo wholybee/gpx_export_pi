@@ -36,7 +36,7 @@ pathman add "%CMAKE_HOME%\bin" > nul
 :: Install Poedit if required
 msgmerge --version >nul 2>&1
 if errorlevel 1 (
-  choco install -y poedit
+  choco install --version 2.4.2 --no-progress -y poedit
   set "PATH=%PATH%;C:\Program Files (x86)\Poedit\Gettexttools\bin"
 )
 
