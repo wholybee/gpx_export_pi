@@ -32,11 +32,14 @@ pathman add "%CMAKE_HOME%\bin" > nul
 
 :: Install choco poedit and add it's persistent user path element
 ::
-set POEDIT_HOME=C:\Program Files\Poedit\Gettexttools
-if not exist "%POEDIT_HOME%" (
-    choco install --version 2.4.2 --no-progress -y poedit
+
+:: Install Poedit if required
+msgmerge --version >nul 2>&1
+if errorlevel 1 (
+  choco install -y poedit
+  set "PATH=%PATH%;C:\Program Files (x86)\Poedit\Gettexttools\bin"
 )
-pathman add "%POEDIT_HOME%\bin" > nul
+
 
 :: Update required python stuff
 ::

@@ -18,12 +18,13 @@ if not defined VCINSTALLDIR (
   for /f "tokens=* USEBACKQ" %%p in (
     `"%programfiles(x86)%\Microsoft Visual Studio\Installer\vswhere" ^
     -latest -property installationPath`
+    echo call "%%p\Common7\Tools\vsDevCmd.bat"
   ) do call "%%p\Common7\Tools\vsDevCmd.bat"
 )
 
 if exist build (rmdir /s /q build)
 :: mkdir build && cd build
-
+echo cmake -A Win32 -G "Visual Studio 17 2022" 
 cmake -A Win32 -G "Visual Studio 17 2022" ^
     -DCMAKE_GENERATOR_PLATFORM=Win32 ^
     -DCMAKE_BUILD_TYPE=%CONFIGURATION% ^
@@ -31,6 +32,8 @@ cmake -A Win32 -G "Visual Studio 17 2022" ^
     -DwxWidgets_ROOT_DIR=!wxWidgets_ROOT_DIR! ^
     -DOCPN_TARGET_TUPLE=msvc-wx32;10;x86_64 ^
     ..
+echo cmake --build . --target tarball --config %CONFIGURATION%
+
 cmake --build . --target tarball --config %CONFIGURATION%
 
 :: Display dependencies debug info
