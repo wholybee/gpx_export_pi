@@ -13,16 +13,16 @@
 # -------- Options ----------
 
 set(OCPN_TEST_REPO
-    "wholybee/gpx_export_pi-alpha"
+    "workspace-for-warren-085x/gpx_export_pi-alpha"
     CACHE STRING "Default repository for untagged builds"
 )
 set(OCPN_BETA_REPO
-    "wholybee/gpx_export_pi-beta"
+    "workspace-for-warren-085x/gpx_export_pi-beta"
     CACHE STRING
     "Default repository for tagged builds matching 'beta'"
 )
 set(OCPN_RELEASE_REPO
-    "wholybee/gpx_export_pi-prod"
+    "workspace-for-warren-085x/gpx_export_pi-prod"
     CACHE STRING
     "Default repository for tagged builds not matching 'beta'"
 )
