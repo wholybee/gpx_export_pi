@@ -39,7 +39,10 @@ if errorlevel 1 (
   choco install --version 2.4.2 --no-progress -y poedit
   set "PATH=%PATH%;C:\Program Files (x86)\Poedit\Gettexttools\bin"
 )
+echo
 msgmerge --version 
+where msmerge
+echo
 
 :: Update required python stuff
 ::
