@@ -41,7 +41,7 @@ if errorlevel 1 (
 )
 echo
 msgmerge --version 
-where msmerge
+where msgmerge
 echo
 
 :: Update required python stuff
