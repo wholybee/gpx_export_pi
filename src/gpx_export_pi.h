@@ -26,7 +26,7 @@
 
 #define GPX_VERSION_MAJOR 0
 #define GPX_VERSION_MINOR 9
-#define GPX_VERSION_PATCH 0
+#define GPX_VERSION_PATCH 1
 // ---------------------------------------------------------------------------
 // Plugin class
 // ---------------------------------------------------------------------------

@@ -2,11 +2,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <title>GPX Export</title>
 
-  <!-- Background -->
-  <rect x="-1" y="-1" width="66" height="66" fill="#282828"/>
-
   <!-- Document outline with folded corner -->
-  <g stroke="#b4b4b4" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <g stroke="#2b2b2b" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M 6 8 L 6 58 L 38 58 L 38 16 L 30 8 Z" stroke-width="2.5"/>
     <path d="M 30 8 L 30 16 L 38 16" stroke-width="2.5"/>
 
@@ -19,10 +16,10 @@
   </g>
 
   <!-- GPX label at top of document -->
-  <text x="22" y="25" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="bold" fill="#b4b4b4" text-anchor="middle">GPX</text>
+  <text x="22" y="25" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="bold" fill="#2b2b2b" text-anchor="middle">GPX</text>
 
   <!-- Waypoint markers -->
-  <g fill="#b4b4b4">
+  <g fill="#2b2b2b">
     <circle cx="12" cy="30" r="2.3"/>
     <circle cx="19" cy="38" r="2.3"/>
     <circle cx="16" cy="46" r="2.3"/>

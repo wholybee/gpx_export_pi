@@ -116,6 +116,15 @@ int gpx_export_pi::Init() {
     wxLogMessage(wxT("GPX Export: using toolbar icon: %s"), icon_path);
   }
 
+  wxString icon_path_light = m_shareLocn + wxT("gpx_export_pi-light.svg");
+  if (!wxFileExists(icon_path)) {
+    wxLogWarning(wxT("GPX Export: toolbar icon not found: %s"), icon_path);
+  } else {
+    wxLogMessage(wxT("GPX Export: using toolbar icon: %s"), icon_path);
+  }
+
+  m_panelBitmap = GetBitmapFromSVGFile(icon_path_light, 32, 32);
+
   m_toolbar_id = InsertPlugInToolSVG(
       wxT("GPX Export"), icon_path, icon_path, icon_path, wxITEM_NORMAL,
       wxT("GPX Export"),
@@ -161,7 +170,7 @@ wxBitmap* gpx_export_pi::GetPlugInBitmap() { return &m_panelBitmap; }
 
 int gpx_export_pi::GetToolbarToolCount() { return 1; }
 
-wxString gpx_export_pi::GetCommonName() { return wxT("GPX Export"); }
+wxString gpx_export_pi::GetCommonName() { return wxT("gpx_export_pi"); }
 
 wxString gpx_export_pi::GetShortDescription() {
   return wxT("Export routes and waypoints to GPX files.");

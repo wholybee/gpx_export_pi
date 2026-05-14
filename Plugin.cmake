@@ -32,12 +32,12 @@ set(OCPN_RELEASE_REPO
 # -------  Plugin setup --------
 #
 set(PKG_NAME gpx_export_pi)
-set(PKG_VERSION 0.9.0)
-set(PKG_RELEASE 2)
+set(PKG_VERSION 0.9.1)
+set(PKG_RELEASE 3)
 set(PKG_PRERELEASE "")  # Empty, or a tag like 'beta'
 
 set(DISPLAY_NAME "GPX Export")    # Dialogs, installer artifacts, ...
-set(PLUGIN_API_NAME "GPX Export") # As of GetCommonName() in plugin API
+set(PLUGIN_API_NAME "gpx_export_pi") # As of GetCommonName() in plugin API
 set(PKG_SUMMARY "Export GPX to File or FTP")
 set(PKG_DESCRIPTION [=[
 	Export OpenCPN routes and waypoints to GPX files using configurable compatibility presets for marine chartplotters and navigation software.

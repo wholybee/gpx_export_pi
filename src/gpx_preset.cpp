@@ -34,7 +34,7 @@ GpxCompatibilityPreset GenericMarinePreset() {
 GpxCompatibilityPreset OpenCPNFullPreset() {
   GpxCompatibilityPreset p;
   p.id = "opencpn_full";
-  p.display_name = "OpenCPN Full-Fidelity GPX";
+  p.display_name = "OpenCPN Full Feature";
   p.include_extensions = true;
   p.include_opencpn_extensions = true;
   p.include_garmin_extensions = true;
@@ -131,9 +131,9 @@ GpxCompatibilityPreset FurunoSafePreset() {
 }
 
 std::vector<GpxCompatibilityPreset> GetBuiltinPresets() {
-  return {GenericMarinePreset(), OpenCPNFullPreset(),   MinimalPreset(),
-          GarminSafePreset(),    RaymarineSafePreset(), NavicoSafePreset(),
-          FurunoSafePreset()};
+  return {GenericMarinePreset(), OpenCPNFullPreset(),   MinimalPreset() /* , 
+          GarminSafePreset(),    RaymarineSafePreset(), NavicoSafePreset(), 
+          FurunoSafePreset() */ };
 }
 
 }  // namespace gpx_preset
